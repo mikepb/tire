@@ -56,13 +56,29 @@ module Tire
                                  "based on _type '#{type}'.", e.backtrace
               end
               ids = items.map { |h| h['_id'] }
-              records[type] = @options[:load] === true ? klass.find(ids) : klass.find(ids, @options[:load])
+              rel = klass.where(:id => ids)
+              rel = @options[:load] === true ? rel.all : rel.all(@options[:load])
+              map = records[type] = {}
+              rel.each { |model| map[model.id.to_s] = model }
             end
 
-            # Reorder records to preserve order from search results
-            @response['hits']['hits'].map { |item| records[item['_type']].detect { |record| record.id.to_s == item['_id'].to_s } }
+            # Match up results with models, filtering out missing
+            @missing  = []
+            results = @response['hits']['hits'].map do |item|
+              id, type = item['_id'], item['_type']
+              model = records[type][id.to_s]
+              @missing << { :id => id, :type => type, :class => klass } if model.nil?
+              model
+            end
+            results.compact!
+            results
           end
         end
+      end
+
+      def missing
+        results
+        @missing
       end
 
       def each(&block)
