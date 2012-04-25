@@ -185,13 +185,24 @@ module Tire
         Search::Search.new('index').perform
       end
 
-      should "log the original exception on failed request" do
+      should "log the original exception on connection failed request" do
         Configuration.logger STDERR
 
         Configuration.client.expects(:get).raises(Errno::ECONNREFUSED)
         Configuration.logger.expects(:log_response).with('N/A', 'N/A', '')
 
         assert_raise Errno::ECONNREFUSED do
+          Search::Search.new('index').perform
+        end
+      end
+
+      should "log the original exception on timeout failed request" do
+        Configuration.logger STDERR
+
+        Configuration.client.expects(:get).raises(Errno::ETIMEDOUT)
+        Configuration.logger.expects(:log_response).with('N/A', 'N/A', '')
+
+        assert_raise Errno::ETIMEDOUT do
           Search::Search.new('index').perform
         end
       end

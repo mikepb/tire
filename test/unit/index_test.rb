@@ -460,6 +460,12 @@ module Tire
           assert !@index.bulk_store([ {:id => '1', :title => 'One'}, {:id => '2', :title => 'Two'} ])
         end
 
+        should "try again when a timeout error occurs" do
+          Configuration.client.expects(:post).raises(Errno::ETIMEDOUT, "A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond. - connect(2)").at_least(2)
+
+          assert !@index.bulk_store([ {:id => '1', :title => 'One'}, {:id => '2', :title => 'Two'} ])
+        end
+
         should "signal exceptions should not be caught" do
           Configuration.client.expects(:post).raises(Interrupt, "abort then interrupt!")
 

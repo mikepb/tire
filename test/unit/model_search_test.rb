@@ -327,9 +327,29 @@ module Tire
             assert_equal false,      ModelWithCustomMappingAndOptions.mapping_options[:_all][:enabled]
           end
 
-          should "not raise an error when defining mapping" do
+          should "not raise a connection error when defining mapping" do
             Tire::Index.any_instance.unstub(:exists?)
             Configuration.client.expects(:head).raises(Errno::ECONNREFUSED)
+
+            assert_nothing_raised do
+              class ::ModelWithCustomMapping
+                extend ActiveModel::Naming
+                extend ActiveModel::Callbacks
+
+                include Tire::Model::Search
+                include Tire::Model::Callbacks
+
+                mapping do
+                  indexes :title, :type => 'string', :analyzer => 'snowball', :boost => 10
+                end
+
+              end
+            end
+          end
+
+          should "not raise a timeout error when defining mapping" do
+            Tire::Index.any_instance.unstub(:exists?)
+            Configuration.client.expects(:head).raises(Errno::ETIMEDOUT)
 
             assert_nothing_raised do
               class ::ModelWithCustomMapping
