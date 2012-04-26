@@ -43,6 +43,7 @@ module Tire
             return [] if hits.empty?
 
             records = {}
+            klasses = {}
             @response['hits']['hits'].group_by { |item| item['_type'] }.each do |type, items|
               raise NoMethodError, "You have tried to eager load the model instances, " +
                                    "but Tire cannot find the model class because " +
@@ -50,6 +51,7 @@ module Tire
 
               begin
                 klass = type.camelize.constantize
+                klasses[type] = klass
               rescue NameError => e
                 raise NameError, "You have tried to eager load the model instances, but " +
                                  "Tire cannot find the model class '#{type.camelize}' " +
@@ -67,7 +69,7 @@ module Tire
             results = @response['hits']['hits'].map do |item|
               id, type = item['_id'], item['_type']
               model = records[type][id.to_s]
-              @missing << { :id => id, :type => type, :class => klass } if model.nil?
+              @missing << { :id => id, :type => type, :class => klasses[type] } if model.nil?
               model
             end
             results.compact!
