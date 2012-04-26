@@ -38,12 +38,12 @@ module Tire
 
     def mapping
       @response = Configuration.client.get("#{Configuration.url}/#{@name}/_mapping")
-      MultiJson.load(@response.body)[@name]
+      MultiJson.decode(@response.body)[@name]
     end
 
     def settings
       @response = Configuration.client.get("#{Configuration.url}/#{@name}/_settings")
-      MultiJson.load(@response.body)[@name]['settings']
+      MultiJson.decode(@response.body)[@name]['settings']
     end
 
     def store(*args)
@@ -62,7 +62,7 @@ module Tire
       url += "?percolate=#{percolate}" if percolate
 
       @response = Configuration.client.post url, document
-      MultiJson.load(@response.body)
+      MultiJson.decode(@response.body)
 
     ensure
       curl = %Q|curl -X POST "#{url}" -d '#{document}'|
@@ -154,7 +154,7 @@ module Tire
 
       url    = "#{Configuration.url}/#{@name}/#{type}/#{id}"
       result = Configuration.client.delete url
-      MultiJson.load(result.body) if result.success?
+      MultiJson.decode(result.body) if result.success?
 
     ensure
       curl = %Q|curl -X DELETE "#{url}"|
@@ -168,7 +168,7 @@ module Tire
       url       = "#{Configuration.url}/#{@name}/#{type}/#{id}"
       @response = Configuration.client.get url
 
-      h = MultiJson.load(@response.body)
+      h = MultiJson.decode(@response.body)
       if Configuration.wrapper == Hash then h
       else
         return nil if h['exists'] == false
@@ -193,7 +193,7 @@ module Tire
     def open(options={})
       # TODO: Remove the duplication in the execute > rescue > ensure chain
       @response = Configuration.client.post "#{Configuration.url}/#{@name}/_open", MultiJson.encode(options)
-      MultiJson.load(@response.body)['ok']
+      MultiJson.decode(@response.body)['ok']
 
     ensure
       curl = %Q|curl -X POST "#{Configuration.url}/#{@name}/_open"|
@@ -202,7 +202,7 @@ module Tire
 
     def close(options={})
       @response = Configuration.client.post "#{Configuration.url}/#{@name}/_close", MultiJson.encode(options)
-      MultiJson.load(@response.body)['ok']
+      MultiJson.decode(@response.body)['ok']
 
     ensure
       curl = %Q|curl -X POST "#{Configuration.url}/#{@name}/_close"|
@@ -213,7 +213,7 @@ module Tire
       options = {:pretty => true}.update(options)
       params  = options.to_param
       @response = Configuration.client.get "#{Configuration.url}/#{@name}/_analyze?#{params}", text
-      @response.success? ? MultiJson.load(@response.body) : false
+      @response.success? ? MultiJson.decode(@response.body) : false
 
     ensure
       curl = %Q|curl -X GET "#{Configuration.url}/#{@name}/_analyze?#{params}" -d '#{text}'|
@@ -224,7 +224,7 @@ module Tire
       options[:query] = Search::Query.new(&block).to_hash if block_given?
 
       @response = Configuration.client.put "#{Configuration.url}/_percolator/#{@name}/#{name}", MultiJson.encode(options)
-      MultiJson.load(@response.body)['ok']
+      MultiJson.decode(@response.body)['ok']
 
     ensure
       curl = %Q|curl -X PUT "#{Configuration.url}/_percolator/#{@name}/?pretty=1" -d '#{MultiJson.encode(options)}'|
@@ -233,7 +233,7 @@ module Tire
 
     def unregister_percolator_query(name)
       @response = Configuration.client.delete "#{Configuration.url}/_percolator/#{@name}/#{name}"
-      MultiJson.load(@response.body)['ok']
+      MultiJson.decode(@response.body)['ok']
 
     ensure
       curl = %Q|curl -X DELETE "#{Configuration.url}/_percolator/#{@name}"|
@@ -244,7 +244,7 @@ module Tire
       document = args.shift
       type     = get_type_from_document(document)
 
-      document = MultiJson.load convert_document_to_json(document)
+      document = MultiJson.decode convert_document_to_json(document)
 
       query = Search::Query.new(&block).to_hash if block_given?
 
@@ -252,7 +252,7 @@ module Tire
       payload.update( :query => query ) if query
 
       @response = Configuration.client.get "#{Configuration.url}/#{@name}/#{type}/_percolate", MultiJson.encode(payload)
-      MultiJson.load(@response.body)['matches']
+      MultiJson.decode(@response.body)['matches']
 
     ensure
       curl = %Q|curl -X GET "#{Configuration.url}/#{@name}/#{type}/_percolate?pretty=1" -d '#{payload.to_json}'|

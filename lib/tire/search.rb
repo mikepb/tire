@@ -96,7 +96,7 @@ module Tire
           STDERR.puts "[REQUEST FAILED] #{self.to_curl}\n"
           raise SearchRequestFailed, @response.to_s
         end
-        @json     = MultiJson.load(@response.body)
+        @json     = MultiJson.decode(@response.body)
         @results  = Results::Collection.new(@json, @options)
         return self
       ensure
