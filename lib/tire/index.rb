@@ -54,6 +54,7 @@ module Tire
         percolate = options[:percolate]
         percolate = "*" if percolate === true
         parent = options[:parent]
+        routing = options[:routing]
       end
 
       id       = get_id_from_document(document)
@@ -62,6 +63,7 @@ module Tire
       url  = id ? "#{Configuration.url}/#{@name}/#{type}/#{id}" : "#{Configuration.url}/#{@name}/#{type}/"
       url += "?percolate=#{percolate}" if percolate
       url += "?parent=#{parent}" if parent
+      url += "?routing=#{routing}" if routing
 
       @response = Configuration.client.post url, document
       MultiJson.decode(@response.body)
@@ -76,6 +78,7 @@ module Tire
         type = get_type_from_document(document, :escape => false) # Do not URL-escape the _type
         id   = get_id_from_document(document)
         parent = get_parent_from_document(document)
+        routing = get_routing_from_document(document)
 
         STDERR.puts "[ERROR] Document #{document.inspect} does not have ID" unless id
 
@@ -88,6 +91,7 @@ module Tire
         }
 
         meta[:index][:_parent] = parent if parent
+        meta[:index][:_routing] = routing if routing
 
         output = []
         output << meta.to_json
@@ -336,6 +340,18 @@ module Tire
       end
       $VERBOSE = old_verbose
       parent
+    end
+
+    def get_routing_from_document(document)
+      old_verbose, $VERBOSE = $VERBOSE, nil # Silence Object#id deprecation warnings
+      routing = case
+        when document.is_a?(Hash)
+          document[:_routing] || document['_routing'] || document[:routing] || document['routing']
+        when document.respond_to?(:routing) && document.routing != document.object_id
+          document.routing
+      end
+      $VERBOSE = old_verbose
+      routing
     end
 
     def convert_document_to_json(document)
