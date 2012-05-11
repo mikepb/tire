@@ -53,6 +53,7 @@ module Tire
       if options
         percolate = options[:percolate]
         percolate = "*" if percolate === true
+        parent = options[:parent]
       end
 
       id       = get_id_from_document(document)
@@ -60,6 +61,7 @@ module Tire
 
       url  = id ? "#{Configuration.url}/#{@name}/#{type}/#{id}" : "#{Configuration.url}/#{@name}/#{type}/"
       url += "?percolate=#{percolate}" if percolate
+      url += "?parent=#{parent}" if parent
 
       @response = Configuration.client.post url, document
       MultiJson.decode(@response.body)
@@ -73,11 +75,22 @@ module Tire
       payload = documents.map do |document|
         type = get_type_from_document(document, :escape => false) # Do not URL-escape the _type
         id   = get_id_from_document(document)
+        parent = get_parent_from_document(document)
 
         STDERR.puts "[ERROR] Document #{document.inspect} does not have ID" unless id
 
+        meta = {
+          :index => {
+            :_index => @name,
+            :_type => type,
+            :_id => id
+          }
+        }
+
+        meta[:index][:_parent] = parent if parent
+
         output = []
-        output << %Q|{"index":{"_index":"#{@name}","_type":"#{type}","_id":"#{id}"}}|
+        output << meta.to_json
         output << convert_document_to_json(document)
         output.join("\n")
       end
@@ -311,6 +324,18 @@ module Tire
       end
       $VERBOSE = old_verbose
       id
+    end
+
+    def get_parent_from_document(document)
+      old_verbose, $VERBOSE = $VERBOSE, nil # Silence Object#id deprecation warnings
+      parent = case
+        when document.is_a?(Hash)
+          document[:_parent] || document['_parent'] || document[:parent] || document['parent']
+        when document.respond_to?(:parent) && document.parent != document.object_id
+          document.parent
+      end
+      $VERBOSE = old_verbose
+      parent
     end
 
     def convert_document_to_json(document)
