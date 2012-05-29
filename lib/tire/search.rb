@@ -11,7 +11,8 @@ module Tire
         @types   = Array(options.delete(:type)).map { |type| Utils.escape(type) }
         @options = options
 
-        @path    = ['/', @indices.join(','), @types.join(','), '_search'].compact.join('/').squeeze('/')
+        endpoint = options.delete(:endpoint) || '_search'
+        @path    = ['/', @indices.join(','), @types.join(','), endpoint].compact.join('/').squeeze('/')
 
         block.arity < 1 ? instance_eval(&block) : block.call(self) if block_given?
       end
